@@ -1,0 +1,57 @@
+import os
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import ttk
+from PIL import Image
+import shutil
+
+# Function to compress an image without losing quality
+def compress_image(input_path, output_path, quality=85):
+    with Image.open(input_path) as img:
+        img.save(output_path, optimize=True, quality=quality)
+
+# Function to handle the compression process
+def compress_images():
+    input_folder = filedialog.askdirectory(title="Select Input Folder")
+    output_folder = filedialog.askdirectory(title="Select Output Folder")
+    quality = quality_scale.get()
+    
+    # Create a progress bar
+    progress_bar = ttk.Progressbar(window, length=200, mode="determinate")
+    progress_bar.grid(row=3, column=0, columnspan=2, pady=10)
+
+    # Get a list of image files in the input folder
+    image_files = [f for f in os.listdir(input_folder) if f.endswith((".jpg", ".jpeg", ".png", ".bmp"))]
+    total_images = len(image_files)
+
+    # Iterate through the image files and compress them
+    for i, image_file in enumerate(image_files):
+        input_path = os.path.join(input_folder, image_file)
+        output_path = os.path.join(output_folder, image_file)
+        
+        compress_image(input_path, output_path, quality)
+        progress = (i + 1) / total_images * 100
+        progress_bar["value"] = progress
+        window.update()
+    
+    # Show completion message
+    progress_bar.grid_forget()
+    tk.messagebox.showinfo("Compression Complete", "Image compression completed.")
+
+# Create a new Tkinter window
+window = tk.Tk()
+window.title("Image Compression Tool")
+
+# Create a quality slider
+quality_label = ttk.Label(window, text="Quality (0-100):")
+quality_label.grid(row=0, column=0)
+quality_scale = ttk.Scale(window, from_=0, to=100, orient="horizontal")
+quality_scale.set(85)
+quality_scale.grid(row=0, column=1)
+
+# Create a "Compress" button
+compress_button = ttk.Button(window, text="Compress Images", command=compress_images)
+compress_button.grid(row=1, column=0, columnspan=2, pady=10)
+
+# Start the Tkinter main loop
+window.mainloop()
