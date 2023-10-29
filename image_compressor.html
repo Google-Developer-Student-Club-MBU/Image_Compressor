@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Compressor</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        
+        label, input[type="range"] {
+            display: block;
+            margin: 10px 0;
+        }
+        
+        progress {
+            display: none;
+            width: 100%;
+        }
+        
+        a {
+            display: none;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Compressor</h1>
+    
+    <!-- Image Upload Section -->
+    <input type="file" id="imageInput" accept="image/*" multiple>
+    
+    <!-- Compression Settings -->
+    <label for="quality">Compression Quality:</label>
+    <input type="range" id="quality" min="1" max="100" value="80">
+    
+    <!-- Progress Bar -->
+    <progress id="progressBar" value="0" max="100"></progress>
+    
+    <!-- Download Link -->
+    <a id="downloadLink" style="display: none" download="compressed_images.zip">Download Compressed Images</a>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const qualityInput = document.getElementById('quality');
+        const progressBar = document.getElementById('progressBar');
+        const downloadLink = document.getElementById('downloadLink');
+
+        imageInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+
+            if (files.length === 0) {
+                return;
+            }
+
+            progressBar.value = 0;
+            progressBar.style.display = 'block';
+
+            const compressedImages = await compressImages(files, qualityInput.value);
+
+            const downloadUrl = await createDownloadLink(compressedImages);
+            downloadLink.href = downloadUrl;
+            downloadLink.style.display = 'block';
+        });
+
+        async function compressImages(files, quality) {
+            const output = [];
+
+            for (const file of files) {
+                const compressedBlob = await compressImage(file, quality);
+                output.push({ filename: file.name, blob: compressedBlob });
+                progressBar.value += 100 / files.length;
+            }
+
+            return output;
+        }
+
+        async function compressImage(file, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+
+                reader.onload = async function () {
+                    const img = new Image();
+                    img.src = reader.result;
+
+                    img.onload = function () {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+
+                        ctx.drawImage(img, 0, 0);
+
+                        canvas.toBlob(
+                            (blob) => {
+                                resolve(blob);
+                            },
+                            file.type,
+                            quality / 100
+                        );
+                    };
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function createDownloadLink(compressedImages) {
+            const zip = new JSZip();
+
+            for (const image of compressedImages) {
+                zip.file(image.filename, image.blob);
+            }
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            return URL.createObjectURL(zipBlob);
+        }
+    </script>
+</body>
+</html>
